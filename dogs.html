@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-slider/dist/simple-slider.min.css">
+    <title>Dogs</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="stocks.html">Stocks</a></li>
+            <li><a href="dogs.html">Dogs</a></li>
+        </ul>
+    </nav>
+
+    <!-- Slideshow -->
+    <div data-simple-slider class="slider" id="dogCarousel"></div>
+
+    <!-- Dog Buttons -->
+    <div id="dogButtonsContainer"></div>
+    <div id="dogInfoContainer">
+        <h3 id="dogBreedName"></h3>
+        <p id="dogBreedDescription"></p>
+        <p><strong>Min Life Expectancy:</strong> <span id="dogBreedMinLife"></span> years</p>
+        <p><strong>Max Life Expectancy:</strong> <span id="dogBreedMaxLife"></span> years</p>
+    </div>
+
+    <!-- Audio Instructions Div -->
+    <div class="audio-instructions">
+        <h2>Audio Navigation Instructions</h2>
+        <p>Use the following voice commands:</p>
+        <ul>
+            <li>Say Load Dog Breed &lt;Load Dog Breed&gt;</li>
+            <li>Say "Hello" to see an alert with "Hello World".</li>
+            <li>Say "Change the color to &lt;color&gt;" to change the background color.</li>
+            <li>Say "Navigate to &lt;page&gt;" to navigate to a page (home, stocks, dogs).</li>
+        </ul>
+        <button id="turnOnAudio">Turn On Audio</button>
+        <button id="turnOffAudio">Turn Off Audio</button>
+    </div>
+
+    <script src="https://rawgit.com/ruyadorno/simple-slider/master/dist/simpleslider.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
+    <script>
+        // Fetch dog breeds from API
+        async function loadDogImages(count = 10) {
+            const carousel = document.getElementById('dogCarousel');
+            for (let i = 0; i < count; i++) {
+                const res = await fetch('https://dog.ceo/api/breeds/image/random');
+                const data = await res.json();
+                const img = document.createElement('img');
+                img.src = data.message;
+                carousel.appendChild(img);
+                
+            }
+
+            // Initialize SimpleSlider
+            simpleslider.getSlider();
+        }
+
+        loadDogImages();
+
+        async function loadDogBreeds() {
+            const res = await fetch('https://api.thedogapi.com/v1/breeds');
+            const breeds = await res.json();
+            const container = document.getElementById('dogButtonsContainer');
+            breeds.forEach(breed => {
+                const button = document.createElement('button');
+                button.textContent = breed.name;
+                button.setAttribute('class', 'dog-breed-button button-28');
+                button.addEventListener('click', () => displayBreedInfo(breed));
+                container.appendChild(button);
+            });
+        }
+
+        function displayBreedInfo(breed) {
+            const container = document.getElementById('dogInfoContainer');
+            document.getElementById('dogBreedName').textContent = breed.name;
+            document.getElementById('dogBreedDescription').textContent = breed.temperament || 'No description available.';
+            document.getElementById('dogBreedMinLife').textContent = breed.life_span.split(' - ')[0] || 'N/A';
+            document.getElementById('dogBreedMaxLife').textContent = breed.life_span.split(' - ')[1] || 'N/A';
+            container.style.display = 'block';
+        }
+
+        loadDogBreeds();
+
+        // Check if annyang is available
+        if (annyang) {
+            // Define commands
+            const commands = {
+                'hello': () => alert('Hello World'),
+                'change the color to *color': (color) => {
+                    document.body.style.backgroundColor = color;
+                },
+                'navigate to *page': (page) => {
+                    page = page.toLowerCase();
+                    if (page === 'home') window.location.href = 'index.html';
+                    if (page === 'stocks') window.location.href = 'stocks.html';
+                    if (page === 'dogs') window.location.href = 'dogs.html';
+                },
+                'load dog breed *breed': (breedName) => {
+                    fetch('https://api.thedogapi.com/v1/breeds')
+                        .then(res => res.json())
+                        .then(breeds => {
+                            const breed = breeds.find(b => b.name.toLowerCase() === breedName.toLowerCase());
+                            if (breed) {
+                                displayBreedInfo(breed);
+                            } else {
+                                alert('Breed not found');
+                            }
+                        })
+                        .catch(e => console.error("Failed to fetch breed info", e));
+                }
+            };
+
+            // Add commands to annyang
+            annyang.addCommands(commands);
+
+            // Turn on and off audio functionality
+            document.getElementById('turnOnAudio').addEventListener('click', () => {
+                annyang.start();
+                alert('Audio commands are now ON');
+            });
+
+            document.getElementById('turnOffAudio').addEventListener('click', () => {
+                annyang.abort();
+                alert('Audio commands are now OFF');
+            });
+        } else {
+            alert('Annyang is not supported in this browser.');
+        }
+    </script>
+</body>
+</html>
